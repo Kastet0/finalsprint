@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	defaultPort = "7540"
-	webDir      = "./web"
+	DefaultPort = "7540"
+	WebDir      = "./web"
 )
 
-func getPort() string {
+func GetPort() string {
 	if port := os.Getenv("TODO_PORT"); port != "" {
 		return port
 	}
-	return defaultPort
+	return DefaultPort
 }

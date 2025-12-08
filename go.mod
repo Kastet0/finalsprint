@@ -1,10 +1,9 @@
-module main
+module finalsprint
 
 go 1.24.3
 
-replace main => ../main
-
 require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/stretchr/testify v1.11.1
 	modernc.org/sqlite v1.40.1
