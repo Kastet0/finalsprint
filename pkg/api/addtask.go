@@ -183,8 +183,9 @@ func writeJSON(w http.ResponseWriter, data any, statusCode int) {
 	}
 }
 
+// Поменял на http.StatusInternalServerError - 500 код
 func writeError(w http.ResponseWriter, errMsg string) {
-	writeJSON(w, ErrorResponse{Error: errMsg}, http.StatusBadRequest)
+	writeJSON(w, ErrorResponse{Error: errMsg}, http.StatusInternalServerError)
 }
 
 func checkDate(task *db.Task) error {

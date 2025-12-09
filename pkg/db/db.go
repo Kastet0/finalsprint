@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -39,7 +40,7 @@ func Init(dbFile string) error {
 
 	dbConn, err := sql.Open("sqlite", dbFile)
 	if err != nil {
-		return fmt.Errorf("failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 
 	if install {
@@ -47,7 +48,7 @@ func Init(dbFile string) error {
 
 		if _, err := dbConn.Exec(schema); err != nil {
 			dbConn.Close()
-			return fmt.Errorf("failed to create schema: %v", err)
+			return fmt.Errorf("failed to create schema: %w", err)
 		}
 
 		log.Println("Database created")
@@ -107,7 +108,7 @@ func Tasks(limit int, search string) ([]*Task, error) {
 	}
 	rows, err := DB.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query: %v", err)
+		return nil, fmt.Errorf("failed to query: %w", err)
 	}
 	defer rows.Close()
 
@@ -134,7 +135,7 @@ func Tasks(limit int, search string) ([]*Task, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error during row iteration: %v", err)
+		return nil, fmt.Errorf("error during row iteration: %w", err)
 	}
 
 	return tasks, nil
@@ -152,11 +153,11 @@ func GetTask(id string) (*Task, error) {
 	row := DB.QueryRow(`SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?`, id)
 
 	err := row.Scan(&dbID, &date, &title, &comment, &repeat)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("ID %snot found", id)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("scan error %v", err)
+		return nil, fmt.Errorf("scan error %w", err)
 	}
 	task.ID = fmt.Sprintf("%d", dbID)
 	task.Date = date
@@ -177,12 +178,12 @@ func UpdateTask(task *Task) error {
 	res, err := DB.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
 
 	if err != nil {
-		return fmt.Errorf("runtime error UPDATE: %v", err)
+		return fmt.Errorf("runtime error UPDATE: %w", err)
 	}
 
 	count, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("error check RowsAffected: %v", err)
+		return fmt.Errorf("error check RowsAffected: %w", err)
 	}
 	if count == 0 {
 		return fmt.Errorf("ID %s not found", task.ID)
@@ -201,12 +202,12 @@ func DeleteTask(id string) error {
 
 	res, err := DB.Exec(`DELETE FROM scheduler WHERE id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("runtime error DELETE: %v", err)
+		return fmt.Errorf("runtime error DELETE: %w", err)
 	}
 
 	count, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("error check RowsAffected: %v", err)
+		return fmt.Errorf("error check RowsAffected: %w", err)
 	}
 	if count == 0 {
 		return fmt.Errorf("ID %s not found", id)
@@ -222,12 +223,12 @@ func UpdateDate(id string, nextDate string) error {
 	res, err := DB.Exec(query, nextDate, id)
 
 	if err != nil {
-		return fmt.Errorf("runtime error UPDATE DATE: %v", err)
+		return fmt.Errorf("runtime error UPDATE DATE: %w", err)
 	}
 
 	count, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("error check RowsAffectes: %v", err)
+		return fmt.Errorf("error check RowsAffectes: %w", err)
 	}
 	if count == 0 {
 		return fmt.Errorf("ID %s not found", id)
