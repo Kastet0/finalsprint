@@ -18,23 +18,23 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeError(w, "JSON deserialization error: "+err.Error())
+		writeError(w, "JSON deserialization error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if len(task.Title) == 0 {
-		writeError(w, "Task title not specified")
+		writeError(w, "Task title not specified", http.StatusBadRequest)
 		return
 	}
 
 	if err := checkDate(&task); err != nil {
-		writeError(w, err.Error())
+		writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	id, err := db.AddTask(&task)
 	if err != nil {
-		writeError(w, "Error adding task to database: "+err.Error())
+		writeError(w, "Error adding task to database: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -45,17 +45,17 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
 	if id == "" {
-		writeError(w, "id is empty")
+		writeError(w, "id is empty", http.StatusBadRequest)
 		return
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || err.Error() == fmt.Sprintf("ID task %s dont found", id) {
-			writeError(w, "task not found")
+			writeError(w, "task not found", http.StatusBadRequest)
 			return
 		}
-		writeError(w, "error get task from DB:"+err.Error())
+		writeError(w, "error get task from DB:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	writeJSON(w, task, http.StatusOK)
@@ -65,31 +65,31 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeError(w, "JSON deserialization error"+err.Error())
+		writeError(w, "JSON deserialization error"+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if len(task.ID) == 0 {
-		writeError(w, "no task ID specified for update")
+		writeError(w, "no task ID specified for update", http.StatusBadRequest)
 		return
 	}
 
 	if len(task.Title) == 0 {
-		writeError(w, "title is empty")
+		writeError(w, "title is empty", http.StatusBadRequest)
 		return
 	}
 
 	if err := checkDate(&task); err != nil {
-		writeError(w, err.Error())
+		writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if err := db.UpdateTask(&task); err != nil {
 		if err.Error() == fmt.Sprintf("ID task %s not found", task.ID) {
-			writeError(w, "task not found")
+			writeError(w, "task not found", http.StatusBadRequest)
 			return
 		}
-		writeError(w, "error update task in DB"+err.Error())
+		writeError(w, "error update task in DB"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	writeJSON(w, EmptyResponse{}, http.StatusOK)
@@ -99,16 +99,16 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
 	if id == "" {
-		writeError(w, "id is empty")
+		writeError(w, "id is empty", http.StatusBadRequest)
 		return
 	}
 
 	if err := db.DeleteTask(id); err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			writeError(w, "task not found")
+			writeError(w, "task not found", http.StatusBadRequest)
 			return
 		}
-		writeError(w, "error DELETE task in DB:"+err.Error())
+		writeError(w, "error DELETE task in DB:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	writeJSON(w, EmptyResponse{}, http.StatusOK)
@@ -116,56 +116,56 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeError(w, "method not allowed")
+		writeError(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 
 	if id == "" {
-		writeError(w, "id is empty")
+		writeError(w, "id is empty", http.StatusBadRequest)
 		return
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			writeError(w, "task nor found")
+			writeError(w, "task nor found", http.StatusBadRequest)
 			return
 		}
-		writeError(w, "error GET task in DB: "+err.Error())
+		writeError(w, "error GET task in DB: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if task.Repeat == "" {
 		if err := db.DeleteTask(id); err != nil {
 			if strings.Contains(err.Error(), "not found") {
-				writeError(w, "task not found")
+				writeError(w, "task not found", http.StatusBadRequest)
 				return
 			}
-			writeError(w, "error DELETE task in DB:"+err.Error())
+			writeError(w, "error DELETE task in DB:"+err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
 
 		taskTime, err := time.Parse(dateFormat, task.Date)
 		if err != nil {
-			writeError(w, "internal error: failed to parse task date: "+err.Error())
+			writeError(w, "internal error: failed to parse task date: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		nextDateStr, err := nextdate.NextDate(taskTime, task.Date, task.Repeat)
 		if err != nil {
-			writeError(w, "error calculate nextdate: "+err.Error())
+			writeError(w, "error calculate nextdate: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if err := db.UpdateDate(id, nextDateStr); err != nil {
 			if strings.Contains(err.Error(), "not found") {
-				writeError(w, "task not found")
+				writeError(w, "task not found", http.StatusBadRequest)
 				return
 			}
-			writeError(w, "error UPDATE task in DB: "+err.Error())
+			writeError(w, "error UPDATE task in DB: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -183,9 +183,8 @@ func writeJSON(w http.ResponseWriter, data any, statusCode int) {
 	}
 }
 
-// Поменял на http.StatusInternalServerError - 500 код
-func writeError(w http.ResponseWriter, errMsg string) {
-	writeJSON(w, ErrorResponse{Error: errMsg}, http.StatusInternalServerError)
+func writeError(w http.ResponseWriter, errMsg string, statusCode int) {
+	writeJSON(w, ErrorResponse{Error: errMsg}, statusCode)
 }
 
 func checkDate(task *db.Task) error {

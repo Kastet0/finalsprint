@@ -141,7 +141,7 @@ func signInHandler(w http.ResponseWriter, r *http.Request) {
 	envPass := os.Getenv("TODO_PASSWORD")
 
 	if r.Method != http.MethodPost {
-		writeError(w, "Method not allowed")
+		writeError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -153,12 +153,12 @@ func signInHandler(w http.ResponseWriter, r *http.Request) {
 	var req SignInRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, "JSON deserialization error. Make sure you sent a POST request with Content-Type: application/json and a body like {\"password\": \"YOUR_PASSWORD\"}.")
+		writeError(w, "JSON deserialization error. Make sure you sent a POST request with Content-Type: application/json and a body like {\"password\": \"YOUR_PASSWORD\"}.", http.StatusBadRequest)
 		return
 	}
 
 	if req.Password != envPass {
-		writeError(w, "Invalid password")
+		writeError(w, "Invalid password", http.StatusUnauthorized)
 		return
 	}
 

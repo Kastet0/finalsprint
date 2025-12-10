@@ -22,7 +22,7 @@ func tasksHandler(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := db.Tasks(limit, search)
 	if err != nil {
-		writeError(w, "Error retrieving tasks from the database: "+err.Error())
+		writeError(w, "Error retrieving tasks from the database: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
